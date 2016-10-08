@@ -1,74 +1,30 @@
 var papa = require('papaparse');
 var fs = require('fs');
 var _ = require('lodash');
+var lib = require('./lib');
+const file_name = 'movie_metadata.csv';
 
-var dataAsCsv = fs.readFileSync('movie_metadata.csv','utf8');
-var data = papa.parse(dataAsCsv,{header: true}).data
-data.pop();
 
-var parseGenre = function(genreString){
-  return genreString.split('|');
+var getData = function(fileName) {
+    var dataAsCsv = fs.readFileSync(fileName, 'utf8');
+    var data = papa.parse(dataAsCsv, {
+        header: true
+    }).data
+    data.pop();
+    return data;
 };
 
-var refineData = function(data){
-  return data.map(function(row){
-    return {
-            movie_name: row.movie_title.trim(),
-            genres: parseGenre(row.genres),
-            content_rating: row.content_rating,
-            year: row.title_year
-          }
-  })
+var generateDataForContentRating = function(data) {
+    var pureData = lib.removeRowWithEmptyField(lib.refineData(data), 'year');
+    var somthing = _.values(lib.aggregateBy(pureData, 'year', 'content_rating'));
+    return JSON.stringify(somthing)
 };
 
-var sayan = function(data){
-  var splittedData = data.map(function(row){
-    return row.genres.map(function(genre){
-      var result = _.clone(row);
-      result.genre = genre
-      return result;
-    })
-  })
-  return _.flattenDeep(splittedData);
-};
-var suman = sayan(refineData(data));
-// var groupedByYear = _.groupBy(suman,'year');
-
-var eliminateUnwantedData = function(data){
-  return data.filter(function(movie){
-    return movie.year;
-  })
+var generateDataForGenre = function(data) {
+    var suman = lib.refiningGenre(lib.refineData(data));
+    var pureData = lib.removeRowWithEmptyField(suman, 'year');
+    var somthing = _.values(lib.aggregateBy(pureData, 'year', 'genre'));
+    return JSON.stringify(somthing)
 };
 
-var pureData =  eliminateUnwantedData(suman);
-// console.log(pureData);
-
-var result = {};
-
-pureData.forEach(function(movie){
-  if(!result[movie.year]){
-    result[movie.year] = {year:movie.year};
-  }
-  result[movie.year][movie.content_rating] = result[movie.year][movie.content_rating] ? result[movie.year][movie.content_rating]+1 : 1;
-});
-var somthing = _.values(result);
-
-var final = somthing.sort(function(a,b){
-  return Object.keys(b).length - Object.keys(a).length
-});
-// somthing.map(function(year){
-//   var result = []
-//   for (var genre in year) {
-//     if (genre != 'year') {
-//       result.push([year.year,genre,year[genre]]);
-//     }
-//   }
-//   return result;
-// });
-
-// console.log(_.flatten(final));
-
-
-// console.log(eliminateUnwantedData(groupedByYear));
-console.log(papa.unparse(final));
-// console.log(suman);
+console.log(generateDataForGenre(getData(file_name)));
