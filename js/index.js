@@ -2,11 +2,14 @@ var papa = require('papaparse');
 var fs = require('fs');
 var _ = require('lodash');
 var lib = require('./lib');
-const file_name = 'movie_metadata.csv';
+var file_name = "./movie_metadata.csv";
+var genre_file = './public/data/genre.json';
+var content_rating_file = './public/data/content_rating.json';
 
 
 var getData = function(fileName) {
-    var dataAsCsv = fs.readFileSync(fileName, 'utf8');
+    console.log(file_name)
+    var dataAsCsv = fs.readFileSync(file_name, 'utf8');
     var data = papa.parse(dataAsCsv, {
         header: true
     }).data
@@ -27,4 +30,6 @@ var generateDataForGenre = function(data) {
     return JSON.stringify(somthing)
 };
 
-console.log(generateDataForGenre(getData(file_name)));
+var data = getData();
+fs.writeFileSync(genre_file, generateDataForGenre(data));
+fs.writeFileSync(content_rating_file, generateDataForContentRating(data));
